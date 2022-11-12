@@ -1,0 +1,215 @@
+<?php
+/**
+ * @link              https://www.Trelis.com
+ * @since             1.0.0
+ * @package           Trelis_Ethereum_Payments
+ *
+ * @wordpress-plugin
+ * Plugin Name:       Trelis Ethereum Payments
+ * Plugin URI:        https://www.trelis.com/woocommerce
+ * Description:       Accept USDC and Ether payments directly to your wallet. Your customers pay by connecting any Ethereum wallet.
+ * Version:           1.0.0
+ * Author:            Trelis
+ * Author URI:        https://www.Trelis.com
+ * License:           GPL-2.0+
+ * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt
+ * Text Domain:       trelis-ethereum-payments
+ * Domain Path:       /languages
+ */
+
+
+
+/**
+ * Custom currency and currency symbol
+ */
+add_filter( 'woocommerce_currencies', 'add_crypto' );
+
+function add_crypto( $currencies ) {
+    $currencies['ETH'] = __( 'ETH', 'woocommerce' );
+    $currencies['USDC'] = __( 'USDC', 'woocommerce' );
+    return $currencies;
+}
+
+add_filter('woocommerce_currency_symbol', 'add_my_currency_symbol', 10, 2);
+
+function add_my_currency_symbol( $currency_symbol, $currency ) {
+    switch( $currency ) {
+        case 'ETH': $currency_symbol = 'ETH'; break;
+        case 'USDC': $currency_symbol = 'USDC'; break;
+    }
+    return $currency_symbol;
+}
+
+/*
+* Payment callback Webhook, Used to process the payment callback from the payment gateway
+*/
+
+if (!defined('ABSPATH')) exit;
+function trelis_payment_confirmation_callback()
+{
+    $json = file_get_contents('php://input');
+    $data = json_decode($json);
+
+    $orders = get_posts( array(
+        'post_type' => 'shop_order',
+        'posts_per_page' => -1,
+        'post_status' => 'any',
+        'meta_key'   => '_transaction_id',
+        'meta_value' => json_decode(json_encode($data->mechantProductKey)),
+    ));
+
+    if (empty($orders))
+        return "Failed";
+
+    $order_id = $orders[0]->ID;
+    $order = wc_get_order($order_id);
+
+    if ($order->get_status() == 'processing' || $order->get_status() == 'complete')
+        return "Already processed";
+
+    if ($data->isSuccessful === false) {
+        $order->add_order_note('Trelis payment failed!<br>Body: '.$json);
+        $order->add_order_note("Expected amount " . $data->requiredPaymentAmount . ", received " . $data->paidAmount, true);
+        $order->save();
+        return "Failed";
+    }
+
+    $order->add_order_note("Payment complete!", true);
+    $order->payment_complete();
+    $order->reduce_order_stock();
+    return "Processed";
+}
+
+add_action("rest_api_init", function () {
+    register_rest_route(
+        'trelis/v3',
+        '/payment',
+        array(
+            'methods' => 'POST',
+            'callback' => 'trelis_payment_confirmation_callback',
+            'permission_callback' => '__return_true'
+        ),
+    );
+});
+
+
+
+if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_option('active_plugins')))) {
+
+    add_filter('woocommerce_payment_gateways', 'trelis_add_gateway_class');
+    function trelis_add_gateway_class($gateways)
+    {
+        $gateways[] = 'WC_Trelis_Gateway';
+        return $gateways;
+    }
+
+    add_action('plugins_loaded', 'trelis_init_gateway_class');
+    function trelis_init_gateway_class()
+    {
+        if (!class_exists('WC_Payment_Gateway'))
+            return; // if the WC payment gateway class is not available, do nothing
+        class WC_Trelis_Gateway extends WC_Payment_Gateway
+        {
+
+            public function __construct()
+            {
+                $this->id = 'trelis';
+                $this->icon = 'https://www.trelis.com/assets/trelis.2e0ed160.png';
+                $this->supports = array(
+                    'products'
+                );
+
+                $this->init_form_fields();
+                $this->init_settings();
+                $this->title = "Trelis Payment Gateway";
+                $this->description = $this->get_option('description');
+                $this->enabled = $this->get_option('enabled');
+                $this->api_key = $this->get_option('api_key');
+                $this->api_secret = $this->get_option('api_secret');
+                add_action('woocommerce_update_options_payment_gateways_' . $this->id, array($this, 'process_admin_options'));
+            }
+
+            public function init_form_fields()
+            {
+                $this->form_fields = array(
+                    'enabled' => array(
+                        'title' => 'Enable/Disable',
+                        'label' => 'Enable Trelis Pay',
+                        'type' => 'checkbox',
+                        'description' => '',
+                        'default' => 'no'
+                    ),
+                    'api_url' => array(
+                        'title' => 'API Webhook URL',
+                        'type' => 'text',
+                        'custom_attributes' => array('readonly' => 'readonly'),
+                        'default' => home_url()."/wp-json/trelis/v3/payment"
+                    ),
+                    'api_key' => array(
+                        'title' => 'API Key',
+                        'type' => 'text'
+                    ),
+                    'api_secret' => array(
+                        'title' => 'API Secret',
+                        'type' => 'password'
+                    ),
+                    'description' => array(
+                        'title' => 'Description text',
+                        'description' => 'This text will show on the checkout page after the Trelis payment is selected as the payment mode.',
+                        'type' => 'textarea',
+                        'default' => '',
+                    )
+                );
+            }
+
+            public function process_payment($order_id)
+            {
+                global $woocommerce;
+                $order = wc_get_order($order_id);
+
+                $apiKey = $this->get_option('api_key');
+                $apiSecret = $this->get_option('api_secret');
+                $apiUrl = 'https://api.trelis.com/dev-api/create-dynamic-link?apiKey=' . $apiKey . "&apiSecret=" . $apiSecret;
+
+                $args = array(
+                    'headers' => array(
+                        'Content-Type' => "application/json"
+                    ),
+                    'body' => json_encode(array(
+                        'productName' => "Trelis Payment",
+                        'productPrice' => $order->total,
+                        'currencyType' => $order->currency,
+                        'redirectLink' => $this->get_return_url($order)
+                    ))
+                );
+
+                $response = wp_remote_post($apiUrl, $args);
+
+                if (!is_wp_error($response)) {
+                    $body = json_decode($response['body'], true);
+
+                    if ($body["message"] == 'Successfully created product') {
+                        $order->add_order_note($response['body'], false);
+                        $str = explode("/", $body["data"]["productLink"]);
+                        $paymentID = $str[count($str)-1];
+                        $order->set_transaction_id($paymentID);
+                        $order->save();
+                        $woocommerce->cart->empty_cart();
+
+                        return array(
+                            'result' => 'success',
+                            'redirect' => $body["data"]["productLink"],
+                        );
+                    } else {
+                        wc_add_notice($body["error"], 'error');
+                        return;
+                    }
+                } else {
+                    wc_add_notice($response->get_error_message(), 'error');
+                    wc_add_notice('Connection error.', 'error');
+                    return;
+                }
+            }
+        }
+    }
+}
