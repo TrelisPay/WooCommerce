@@ -1,0 +1,2 @@
+# WooCommerce
+Ethereum Payments Plugin
