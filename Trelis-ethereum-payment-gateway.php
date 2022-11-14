@@ -1,27 +1,25 @@
 <?php
 /**
  * @link              https://www.Trelis.com
- * @since             1.0.0
+ * @since             1.0.9
  * @package           Trelis_Ethereum_Payments
  *
  * @wordpress-plugin
  * Plugin Name:       Trelis Ethereum Payments
- * Plugin URI:        https://www.trelis.com/woocommerce
- * Description:       Accept USDC and Ether payments directly to your wallet. Your customers pay by connecting any Ethereum wallet.
- * Version:           1.0.0
+ * Plugin URI:        https://docs.trelis.com/woocommerce
+ * Description:       Accept USDC and Ether payments directly to your wallet. Your customers pay by connecting any Ethereum wallet. No Trelis fees!
+ * Version:           1.0.9
  * Author:            Trelis
  * Author URI:        https://www.Trelis.com
- * License:           GPL-2.0+
- * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt
+ * License:           GPL-3.0
+ * License URI:       http://www.gnu.org/licenses/gpl-3.0.txt
  * Text Domain:       trelis-ethereum-payments
  * Domain Path:       /languages
  */
 
 
 
-/**
- * Custom currency and currency symbol
- */
+
 add_filter( 'woocommerce_currencies', 'add_crypto' );
 
 function add_crypto( $currencies ) {
@@ -30,9 +28,9 @@ function add_crypto( $currencies ) {
     return $currencies;
 }
 
-add_filter('woocommerce_currency_symbol', 'add_my_currency_symbol', 10, 2);
+add_filter('woocommerce_currency_symbol', 'add_currency_symbols', 10, 2);
 
-function add_my_currency_symbol( $currency_symbol, $currency ) {
+function add_currency_symbols( $currency_symbol, $currency ) {
     switch( $currency ) {
         case 'ETH': $currency_symbol = 'ETH'; break;
         case 'USDC': $currency_symbol = 'USDC'; break;
@@ -47,6 +45,7 @@ function add_my_currency_symbol( $currency_symbol, $currency ) {
 if (!defined('ABSPATH')) exit;
 function trelis_payment_confirmation_callback()
 {
+    return "Here";
     $json = file_get_contents('php://input');
     $data = json_decode($json);
 
@@ -121,12 +120,16 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
 
                 $this->init_form_fields();
                 $this->init_settings();
-                $this->title = "Trelis Payment Gateway";
-                $this->description = $this->get_option('description');
+                $this->title = "Trelis Pay - Ethereum";
                 $this->enabled = $this->get_option('enabled');
                 $this->api_key = $this->get_option('api_key');
                 $this->api_secret = $this->get_option('api_secret');
                 add_action('woocommerce_update_options_payment_gateways_' . $this->id, array($this, 'process_admin_options'));
+
+                if (is_checkout()) {
+                    wp_register_style("trelis", plugins_url('/assets/css/trelis.css', __FILE__), '', '1.0.0');
+                    wp_enqueue_style('trelis');
+                }
             }
 
             public function init_form_fields()
@@ -137,7 +140,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
                         'label' => 'Enable Trelis Pay',
                         'type' => 'checkbox',
                         'description' => '',
-                        'default' => 'no'
+                        'default' => 'yes'
                     ),
                     'api_url' => array(
                         'title' => 'API Webhook URL',
@@ -153,12 +156,6 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
                         'title' => 'API Secret',
                         'type' => 'password'
                     ),
-                    'description' => array(
-                        'title' => 'Description text',
-                        'description' => 'This text will show on the checkout page after the Trelis payment is selected as the payment mode.',
-                        'type' => 'textarea',
-                        'default' => '',
-                    )
                 );
             }
 
@@ -166,6 +163,20 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
             {
                 global $woocommerce;
                 $order = wc_get_order($order_id);
+
+                $currency = $order->get_currency();
+                switch ($currency) {
+                    case 'USD':
+                        $currency = "USDC";
+                        break;
+                    case 'USDC':
+                    case 'ETH':
+                        break;
+                    default:
+                        wc_add_notice("Trelis doesn't support that currency currently.", 'error');
+                        return;
+                }
+
 
                 $apiKey = $this->get_option('api_key');
                 $apiSecret = $this->get_option('api_secret');
@@ -176,9 +187,9 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
                         'Content-Type' => "application/json"
                     ),
                     'body' => json_encode(array(
-                        'productName' => "Trelis Payment",
+                        'productName' => "Ethereum".$currency."(Trelis)",
                         'productPrice' => $order->total,
-                        'currencyType' => $order->currency,
+                        'currencyType' => $currency,
                         'redirectLink' => $this->get_return_url($order)
                     ))
                 );
