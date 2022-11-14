@@ -6,7 +6,7 @@
  *
  * @wordpress-plugin
  * Plugin Name:       Trelis Ethereum Payments
- * Plugin URI:        https://docs.trelis.com/woocommerce
+ * Plugin URI:        https://docs.trelis.com/products/woocommerce-plugin
  * Description:       Accept USDC and Ether payments directly to your wallet. Your customers pay by connecting any Ethereum wallet. No Trelis fees!
  * Version:           1.0.12
  * Author:            Trelis
