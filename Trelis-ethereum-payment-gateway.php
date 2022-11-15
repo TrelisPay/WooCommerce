@@ -2,18 +2,20 @@
 /**
  * @link              https://www.Trelis.com
  * @since             1.0.13
- * @package           Trelis_Ethereum_Payments
+ * @package           Trelis_Crypto_Payments
  *
  * @wordpress-plugin
- * Plugin Name:       Trelis Ethereum Payments
+ * Plugin Name:       Trelis Crypto Payments
  * Plugin URI:        https://docs.trelis.com/products/woocommerce-plugin
- * Description:       Accept USDC and Ether payments directly to your wallet. Your customers pay by connecting any Ethereum wallet. No Trelis fees!
- * Version:           1.0.13
+ * Description:       Accept USDC or Ether payments directly to your wallet. Your customers pay by connecting any Ethereum wallet. No Trelis fees!
+ * Version:           1.0.14
+ * Requires at least: 6.1
+ * Requires PHP:      7.4
  * Author:            Trelis
  * Author URI:        https://www.Trelis.com
  * License:           GPL-3.0
  * License URI:       http://www.gnu.org/licenses/gpl-3.0.txt
- * Text Domain:       trelis-ethereum-payments
+ * Text Domain:       trelis-crypto-payments
  * Domain Path:       /languages
  */
 
