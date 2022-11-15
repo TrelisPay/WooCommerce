@@ -1,14 +1,14 @@
 <?php
 /**
  * @link              https://www.Trelis.com
- * @since             1.0.12
+ * @since             1.0.13
  * @package           Trelis_Ethereum_Payments
  *
  * @wordpress-plugin
  * Plugin Name:       Trelis Ethereum Payments
  * Plugin URI:        https://docs.trelis.com/products/woocommerce-plugin
  * Description:       Accept USDC and Ether payments directly to your wallet. Your customers pay by connecting any Ethereum wallet. No Trelis fees!
- * Version:           1.0.12
+ * Version:           1.0.13
  * Author:            Trelis
  * Author URI:        https://www.Trelis.com
  * License:           GPL-3.0
@@ -61,8 +61,13 @@ function get_currency() {
 if (!defined('ABSPATH')) exit;
 function trelis_payment_confirmation_callback()
 {
-    return "Here";
+    $trelis = WC()->payment_gateways->payment_gateways()['trelis'];
     $json = file_get_contents('php://input');
+
+    $expected_signature = hash_hmac('sha256', $json,  $trelis->get_option('webhook_secret'));
+    if ( $expected_signature != $_SERVER["HTTP_SIGNATURE"])
+        return "Failed";
+
     $data = json_decode($json);
 
     $orders = get_posts( array(
@@ -172,6 +177,10 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
                         'title' => 'API Secret',
                         'type' => 'password'
                     ),
+                    'webhook_secret' => array(
+                        'title' => 'Webhook Secret',
+                        'type' => 'password'
+                    ),
                 );
             }
 
@@ -191,7 +200,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
 
                 $apiKey = $this->get_option('api_key');
                 $apiSecret = $this->get_option('api_secret');
-                $apiUrl = 'https://api.trelis.com/dev-api/create-dynamic-link?apiKey=' . $apiKey . "&apiSecret=" . $apiSecret;
+                $apiUrl = 'https://api.trelis.com/dev-env/dev-api/create-dynamic-link?apiKey=' . $apiKey . "&apiSecret=" . $apiSecret;
 
                 $args = array(
                     'headers' => array(
