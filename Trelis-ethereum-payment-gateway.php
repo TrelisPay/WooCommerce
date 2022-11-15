@@ -143,7 +143,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
 
                 $this->init_form_fields();
                 $this->init_settings();
-                $this->title = "Trelis Pay - Ethereum ".get_currency();
+                $this->title = "Trelis Crypto Payments";
                 $this->enabled = $this->get_option('enabled');
                 $this->api_key = $this->get_option('api_key');
                 $this->api_secret = $this->get_option('api_secret');
