@@ -52,6 +52,10 @@ Customers pay for Ethereum transaction fees (gas). Trelis does not charge a tran
 * Alternately, this plugin allows merchants to list products in USDC or ETH.
 * This plugin **will not work** for products priced in other currencies.
 
+= What is the maximum payment amount? =
+
+* The maximum payment amount is 500 USDC. Reach out to [Support](https://docs.trelis.com/support) to inquire about increasing this limit.
+
 = What are the terms and conditions of using Trelis Crypto Payments =
 
 * Users of Trelis Crypto Payments plugin with Trelis' api must agree to Trelis' [Terms of Service](https://docs.trelis.com/terms-of-service) as a condition of use.
@@ -65,6 +69,9 @@ Customers pay for Ethereum transaction fees (gas). Trelis does not charge a tran
 5. Supported Ethereum wallets
 
 == Changelog ==
+
+= Unreleased =
+* Allow payment in USDC for products priced in non-USD currencies.
 
 = 1.0.14 =
 * Version submitted for WooCommerce review.
