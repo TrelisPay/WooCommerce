@@ -1,14 +1,14 @@
 <?php
 /**
  * @link              https://www.Trelis.com
- * @since             1.0.15
+ * @since             1.0.16
  * @package           Trelis_Crypto_Payments
  *
  * @wordpress-plugin
  * Plugin Name:       Trelis Crypto Payments
  * Plugin URI:        https://docs.trelis.com/products/woocommerce-plugin
  * Description:       Accept USDC or Ether payments directly to your wallet. Your customers pay by connecting any Ethereum wallet. No Trelis fees!
- * Version:           1.0.15
+ * Version:           1.0.16
  * Requires at least: 6.1
  * Requires PHP:      7.4
  * Author:            Trelis
@@ -22,17 +22,17 @@
 
 
 
-add_filter( 'woocommerce_currencies', 'add_crypto' );
+add_filter( 'woocommerce_currencies', 'trelis_add_crypto' );
 
-function add_crypto( $currencies ) {
+function trelis_add_crypto( $currencies ) {
     $currencies['ETH'] = __( 'ETH', 'woocommerce' );
     $currencies['USDC'] = __( 'USDC', 'woocommerce' );
     return $currencies;
 }
 
-add_filter('woocommerce_currency_symbol', 'add_currency_symbols', 10, 2);
+add_filter('woocommerce_currency_symbol', 'trelis_add_currency_symbols', 10, 2);
 
-function add_currency_symbols( $currency_symbol, $currency ) {
+function trelis_add_currency_symbols( $currency_symbol, $currency ) {
     switch( $currency ) {
         case 'ETH': $currency_symbol = 'ETH'; break;
         case 'USDC': $currency_symbol = 'USDC'; break;
@@ -40,7 +40,7 @@ function add_currency_symbols( $currency_symbol, $currency ) {
     return $currency_symbol;
 }
 
-function get_currency() {
+function trelis_get_currency() {
     global  $woocommerce;
     $currency = get_woocommerce_currency();
 
@@ -141,7 +141,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
                     'products'
                 );
 
-                $this->init_form_fields();
+                $this->trelis_init_form_fields();
                 $this->init_settings();
                 $this->title = "Trelis Crypto Payments";
                 $this->enabled = $this->get_option('enabled');
@@ -155,7 +155,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
                 }
             }
 
-            public function init_form_fields()
+            public function trelis_init_form_fields()
             {
                 $this->form_fields = array(
                     'enabled' => array(
@@ -186,13 +186,13 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
                 );
             }
 
-            public function process_payment($order_id)
+            public function trelis_process_payment($order_id)
             {
                 global $woocommerce;
                 $order = wc_get_order($order_id);
 
 
-                $currency = get_currency();
+                $currency = trelis_get_currency();
 
                 if (!$currency) {
                     wc_add_notice("Trelis doesn't support that currency currently.", 'error');
