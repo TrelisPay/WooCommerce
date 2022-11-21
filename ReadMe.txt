@@ -1,3 +1,5 @@
+DEPRECATED: SEE TrelisPay/WooCommerce-svn
+
 === Trelis Crypto Payments ===
 Contributors: ronantrelis
 Donate link: https://art.trelis.com/product/woocommerce-plugin-donation/
